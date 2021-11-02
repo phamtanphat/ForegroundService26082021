@@ -21,7 +21,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this,MyService.class);
+                intent.putExtra("text","Hello");
                 startService(intent);
+            }
+        });
+
+        mMainBinding.buttonStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this,MyService.class);
+                stopService(intent);
             }
         });
     }
