@@ -1,7 +1,11 @@
 package com.example.foregroundservice26082021;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -12,11 +16,13 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
+
+import java.util.Random;
 
 public class MyService extends Service {
 
-    MyHandlerThread handlerThread;
-
+    NotificationManager notificationManager;
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -27,29 +33,15 @@ public class MyService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d("BBB", "onCreate");
-        handlerThread = new MyHandlerThread("HandlerThread");
-        handlerThread.start();
+        notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
+
+        startForeground(1,createNotification(String.valueOf(new Random().nextInt())));
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (handlerThread.isAlive()) {
-            handlerThread.setOnHandleMessage(new OnListenMessage() {
-                @Override
-                public void onHandleMessage(Message message) {
-                    switch (message.what) {
-                        case 1:
-                            Log.d("BBB", message.obj + "");
-                            break;
-                        case 2:
-                            Toast.makeText(getApplicationContext(), "Done", Toast.LENGTH_SHORT).show();
-//                            Log.d("BBB",handlerThread.getState().name());
-                            break;
-                    }
-                }
-            });
-        }
+
         return START_REDELIVER_INTENT;
     }
 
@@ -60,50 +52,19 @@ public class MyService extends Service {
         Toast.makeText(this, "onDestroy", Toast.LENGTH_SHORT).show();
     }
 
+    public Notification createNotification(String message){
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), "CHANNEL_SERVICE");
+        builder.setSmallIcon(android.R.drawable.ic_dialog_email);
+        builder.setShowWhen(true);
+        builder.setContentTitle("Tin nhắn");
+        builder.setContentText(message);
 
-    class MyHandlerThread extends HandlerThread {
-
-        Handler handler;
-        OnListenMessage onListenMessage;
-
-        public MyHandlerThread(String name) {
-            super(name);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel notificationChannel = new NotificationChannel("CHANNEL_SERVICE", "CHANNEL", NotificationManager.IMPORTANCE_DEFAULT);
+            notificationManager.createNotificationChannel(notificationChannel);
         }
 
-        @Override
-        protected void onLooperPrepared() {
-            super.onLooperPrepared();
-            handler = new Handler(getLooper()) {
-                @Override
-                public void handleMessage(@NonNull Message msg) {
-                    super.handleMessage(msg);
-                    if (onListenMessage != null) {
-                        onListenMessage.onHandleMessage(msg);
-                    }
-                }
-            };
-            for (int i = 0; i < 100; i++) {
-                if (i == 50) {
-                    quitSafely();
-                }
-                Message message = new Message();
-                message.what = 1;
-                message.obj = i;
-                handler.sendMessage(message);
-
-            }
-            Message message2 = new Message();
-            message2.what = 2;
-            handler.sendMessage(message2);
-        }
-
-        public void setOnHandleMessage(OnListenMessage handleMessage) {
-            onListenMessage = handleMessage;
-        }
-    }
-
-    interface OnListenMessage {
-        void onHandleMessage(Message message);
+        return builder.build();
     }
 
 }
